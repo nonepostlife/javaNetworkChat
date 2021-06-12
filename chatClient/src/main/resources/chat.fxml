@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<VBox alignment="center" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ru.postlife.javaChatClient.Controller">
+    <TextArea fx:id="chatArea" editable="false" focusTraversable="false" wrapText="true" VBox.vgrow="ALWAYS">
+      <font>
+         <Font size="14.0" />
+      </font></TextArea>
+   <Separator prefWidth="200.0" />
+   <HBox maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="-Infinity" minWidth="-Infinity" prefHeight="80.0">
+      <children>
+         <TextArea fx:id="textMessageArea" onKeyPressed="#sendMessageWithArea" prefHeight="200.0" prefWidth="200.0" wrapText="true" HBox.hgrow="ALWAYS">
+            <HBox.margin>
+               <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+            </HBox.margin>
+            <font>
+               <Font size="14.0" />
+            </font>
+         </TextArea>
+         <Button fx:id="sendButton" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#sendMessage" text="Send">
+            <HBox.margin>
+               <Insets bottom="5.0" right="5.0" top="5.0" />
+            </HBox.margin>
+         </Button>
+      </children>
+   </HBox>
+</VBox>
