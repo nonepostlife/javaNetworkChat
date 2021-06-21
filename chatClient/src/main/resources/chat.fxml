@@ -18,18 +18,20 @@
             </HBox.margin>
         </Button>
     </HBox>
-    <TextArea fx:id="chatArea" editable="false" focusTraversable="false" wrapText="true" VBox.vgrow="ALWAYS">
-    </TextArea>
+    <HBox VBox.vgrow="ALWAYS">
+        <TextArea fx:id="chatArea" editable="false" focusTraversable="false" wrapText="true" HBox.hgrow="ALWAYS"/>
+        <ListView onMouseClicked="#clientsListDoubleClick" fx:id="clientsListView" visible="false" managed="false" minWidth="180" maxWidth="180"/>
+    </HBox>
     <Separator prefWidth="200.0"/>
     <HBox fx:id="msgPanel" managed="false" visible="false">
-        <TextArea fx:id="textMessageArea" onKeyPressed="#sendMessageWithArea" prefHeight="80.0" wrapText="true"
-                  HBox.hgrow="ALWAYS">
+        <TextField fx:id="textMessageArea" onKeyPressed="#sendMessageWithArea"
+                   HBox.hgrow="ALWAYS">
             <HBox.margin>
                 <Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
             </HBox.margin>
-        </TextArea>
-        <Button fx:id="sendButton" minHeight="-Infinity" minWidth="-Infinity" mnemonicParsing="false"
-                onAction="#sendMessage" prefHeight="80.0" text="Send">
+        </TextField>
+        <Button fx:id="sendButton" mnemonicParsing="false"
+                onAction="#sendMessage" text="Send">
             <HBox.margin>
                 <Insets bottom="5.0" right="5.0" top="5.0"/>
             </HBox.margin>
