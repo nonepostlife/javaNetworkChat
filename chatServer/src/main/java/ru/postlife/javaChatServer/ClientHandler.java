@@ -5,6 +5,9 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 
+/**
+ * Класс обработчика пользователей
+ */
 public class ClientHandler {
     private Socket socket;
     private Server server;
@@ -12,49 +15,38 @@ public class ClientHandler {
     private DataInputStream in;
     private DataOutputStream out;
 
+    /**
+     * метод получения имени польователя
+     *
+     * @return строка с именем пользователя
+     */
+    public String getUsername() {
+        return username;
+    }
+
+    /**
+     * констурктор класса ClientHandler
+     *
+     * @param server поле для хранения ссылки на сервер
+     * @param socket поле сокета конкретного пользователя
+     */
     public ClientHandler(Server server, Socket socket) {
         try {
             this.socket = socket;
             this.server = server;
             this.in = new DataInputStream(socket.getInputStream());
             this.out = new DataOutputStream(socket.getOutputStream());
-
-            new Thread(() -> {
-                try {
-                    while (true) {
-                        String message = in.readUTF();
-                        if (message.startsWith("/auth ")) {
-                            username = message.split("\\s+", 2)[1];
-                            if (!this.server.checkNicknameAvailability(username)) {
-                                sendMessage("SERVER: nickname '" + username + "' isn't available!");
-                            } else {
-                                sendMessage("/authok");
-                                sendMessage("SERVER: Welcome to chat");
-                                this.server.subscribe(this);
-                                break;
-                            }
-                        } else {
-                            sendMessage("SERVER: Authorization is required");
-                        }
-                    }
-                    while (true) {
-                        String message = in.readUTF();
-                        if (message.startsWith("/")) {
-                            continue;
-                        }
-                        this.server.broadcastMessage(username + ": " + message);
-                    }
-                } catch (IOException e) {
-                    System.out.println("Client '" + this.getUsername() + "' disconnected");
-                } finally {
-                    this.server.unsubscribe(this);
-                }
-            }).start();
+            new Thread(() -> logic()).start();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
+    /**
+     * отправка сообщения пользователю
+     *
+     * @param message отправляемое сообщение
+     */
     public void sendMessage(String message) {
         try {
             out.writeUTF(message);
@@ -63,7 +55,105 @@ public class ClientHandler {
         }
     }
 
-    public String getUsername() {
-        return username;
+    /**
+     * логика поведения обработчика
+     * принимет сообщения от клиентского приложения
+     */
+    private void logic() {
+        try {
+            while (!consumeAuthorizeMessage(in.readUTF())) ;
+            while (consumeRegularMessage(in.readUTF())) ;
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            System.out.println("Client '" + this.getUsername() + "' disconnected");
+            this.server.unsubscribe(this);
+            closeConnection();
+        }
+    }
+
+    /**
+     * метод для приема сообщений от уже авторизованного пользователя
+     *
+     * @param message приниммаемое сообщение
+     * @return возвращает true при успешном общении с пользователем
+     * возвращает false если от пользоваетля пришел запрос
+     * для закрытия соединения
+     */
+    private boolean consumeRegularMessage(String message) {
+        if (message.startsWith("/")) {
+            if (message.equals("/exit")) {
+                sendMessage("/exit");
+                return false;
+            }
+            if (message.startsWith("/w ")) {
+                String[] tokens = message.split("\\s+", 3);
+                server.sendPersonalMessage(this, tokens[1], tokens[2]);
+            }
+            return true;
+        }
+        server.broadcastMessage(username + ": " + message);
+        return true;
+    }
+
+    /**
+     * метод для приема сообщений от неавторизованного пользователя
+     *
+     * @param message приниммаемое сообщение
+     * @return возвращает true при успешной авторизации пользователя
+     * возвращает false если пользователь не был авторизован
+     */
+    private boolean consumeAuthorizeMessage(String message) {
+        if (message.startsWith("/auth ")) {
+            String[] tokens = message.split("\\s+");
+            if (tokens.length == 1) {
+                sendMessage("SERVER: You didn't provide nickname");
+                return false;
+            }
+            if (tokens.length > 2) {
+                sendMessage("SERVER: Nickname must contain ONE word");
+                return false;
+            }
+            String selectedUsername = tokens[1];
+            if (!this.server.checkNicknameAvailability(selectedUsername)) {
+                sendMessage("SERVER: nickname '" + selectedUsername + "' isn't available!");
+                return false;
+            }
+            username = selectedUsername;
+            sendMessage("/authok " + username);
+            sendMessage("SERVER: Welcome to chat");
+            server.subscribe(this);
+            return true;
+        } else {
+            sendMessage("SERVER: Authorization is required");
+            return false;
+        }
+    }
+
+    /**
+     * метод закрытия соединения с клиентским приложением (сокет, вход. выход. потоков)
+     */
+    public void closeConnection() {
+        try {
+            if (in != null) {
+                in.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        try {
+            if (out != null) {
+                out.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        try {
+            if (socket != null) {
+                socket.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

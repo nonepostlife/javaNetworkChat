@@ -5,6 +5,8 @@ import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.ListCell;
+import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 
 public class Main extends Application {
@@ -15,14 +17,11 @@ public class Main extends Application {
         Parent root = loader.load();
         Controller controller = loader.getController();
         primaryStage.setTitle("Java Chat Client");
-        primaryStage.setScene(new Scene(root, 400, 400));
+        primaryStage.setScene(new Scene(root, 600, 400));
         primaryStage.setMinHeight(400);
         primaryStage.setMinWidth(400);
         primaryStage.setOnCloseRequest(windowEvent -> {
-            controller.disconnect();
-            Platform.exit();
-            System.exit(0);
-
+            controller.sendCloseRequest();
         });
         primaryStage.show();
 
@@ -30,5 +29,24 @@ public class Main extends Application {
 
     public static void main(String[] args) {
         launch(args);
+    }
+
+    /**
+     * класс переопределения поведения ячейки ListView
+     */
+    static class CellFactory extends ListCell<String> {
+        @Override
+        protected void updateItem(String item, boolean empty) {
+            super.updateItem(item, empty);
+            if (!empty) {
+                super.setTextFill(Color.BLACK);
+                if (item != null && item.contains(" (You)")) {
+                    super.setStyle("-fx-font-weight: bold");
+                }
+            } else {
+                super.setStyle("-fx-font-weight: normal");
+            }
+            super.setText(item);
+        }
     }
 }
