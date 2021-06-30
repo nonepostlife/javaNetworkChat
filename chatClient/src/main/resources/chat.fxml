@@ -6,12 +6,22 @@
 
 <VBox alignment="center" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="ru.postlife.javaChatClient.Controller">
+    <MenuBar>
+        <Menu mnemonicParsing="false" text="Chat">
+            <MenuItem fx:id="disconnectMenuItem" mnemonicParsing="false" text="Disconnect"/>
+        </Menu>
+    </MenuBar>
     <HBox fx:id="authPanel">
-        <TextField fx:id="usernameField" onAction="#tryAuth" promptText="Type your nickname..." HBox.hgrow="ALWAYS">
+        <TextField fx:id="usernameField" promptText="Type your nickname..." HBox.hgrow="ALWAYS">
             <HBox.margin>
                 <Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
             </HBox.margin>
         </TextField>
+        <PasswordField fx:id="passwordField" onAction="#tryAuth" promptText="Type password" HBox.hgrow="ALWAYS">
+            <HBox.margin>
+                <Insets bottom="5.0" right="5.0" top="5.0"/>
+            </HBox.margin>
+        </PasswordField>
         <Button maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" onAction="#tryAuth" text="Connect">
             <HBox.margin>
                 <Insets bottom="5.0" right="5.0" top="5.0"/>
@@ -20,18 +30,17 @@
     </HBox>
     <HBox VBox.vgrow="ALWAYS">
         <TextArea fx:id="chatArea" editable="false" focusTraversable="false" wrapText="true" HBox.hgrow="ALWAYS"/>
-        <ListView onMouseClicked="#clientsListDoubleClick" fx:id="clientsListView" visible="false" managed="false" minWidth="180" maxWidth="180"/>
+        <ListView fx:id="clientsListView" managed="false" maxWidth="180" minWidth="180"
+                  onMouseClicked="#clientsListDoubleClick" visible="false"/>
     </HBox>
     <Separator prefWidth="200.0"/>
     <HBox fx:id="msgPanel" managed="false" visible="false">
-        <TextField fx:id="textMessageArea" onKeyPressed="#sendMessageWithArea"
-                   HBox.hgrow="ALWAYS">
+        <TextField fx:id="textMessageArea" onKeyPressed="#sendMessageWithArea" HBox.hgrow="ALWAYS">
             <HBox.margin>
                 <Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
             </HBox.margin>
         </TextField>
-        <Button fx:id="sendButton" mnemonicParsing="false"
-                onAction="#sendMessage" text="Send">
+        <Button fx:id="sendButton" mnemonicParsing="false" onAction="#sendMessage" text="Send">
             <HBox.margin>
                 <Insets bottom="5.0" right="5.0" top="5.0"/>
             </HBox.margin>

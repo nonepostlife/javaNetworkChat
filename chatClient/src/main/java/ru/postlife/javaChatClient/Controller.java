@@ -8,6 +8,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -28,7 +29,11 @@ public class Controller implements Initializable {
     @FXML
     TextField usernameField;
     @FXML
+    PasswordField passwordField;
+    @FXML
     ListView<String> clientsListView;
+    @FXML
+    MenuItem disconnectMenuItem;
 
     private Socket socket;
     private String username;
@@ -41,6 +46,15 @@ public class Controller implements Initializable {
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         clientsListView.setCellFactory(stringListView -> new Main.CellFactory());
+        passwordField.setTextFormatter(new TextFormatter<Object>(change -> {
+            if (change.getText().equals(" ")) {
+                change.setText("");
+            }
+            return change;
+        }));
+        disconnectMenuItem.setOnAction(event -> {
+            sendCloseRequest();
+        });
     }
 
     /**
@@ -110,8 +124,7 @@ public class Controller implements Initializable {
     public void tryAuth() {
         connect();
         try {
-            out.writeUTF("/auth " + usernameField.getText());
-            usernameField.clear();
+            out.writeUTF("/auth " + usernameField.getText() + " " + passwordField.getText());
             textMessageArea.requestFocus();
         } catch (IOException e) {
             showErrorStringMessage("Unable to send authorization request");
@@ -144,10 +157,12 @@ public class Controller implements Initializable {
             while (true) {
                 String message = in.readUTF();
                 if (message.equals("/exit")) {
-                    closeConnection();
+                    return;
                 }
                 if (message.startsWith("/authok ")) {
                     username = message.split("\\s+")[1];
+                    usernameField.clear();
+                    passwordField.clear();
                     setAuthorized(true);
                     break;
                 }
@@ -230,6 +245,7 @@ public class Controller implements Initializable {
             if (selectedUser.contains(" (You)")) {
                 return;
             }
+            textMessageArea.clear();
             textMessageArea.appendText("/w " + selectedUser + " ");
             textMessageArea.requestFocus();
             textMessageArea.selectEnd();
