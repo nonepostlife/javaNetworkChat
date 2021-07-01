@@ -1,6 +1,7 @@
 package ru.postlife.javaChatClient;
 
 import javafx.application.Platform;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
@@ -24,11 +25,17 @@ public class Controller implements Initializable {
     @FXML
     TextField textMessageArea;
     @FXML
-    HBox msgPanel, authPanel;
+    HBox msgPanel, authPanel, changeNicknamePanel;
     @FXML
-    TextField usernameField;
+    TextField usernameField, newNicknameField;
+    @FXML
+    PasswordField passwordField;
     @FXML
     ListView<String> clientsListView;
+    @FXML
+    MenuItem disconnectMenuItem;
+    @FXML
+    CheckMenuItem changeNicknameItem;
 
     private Socket socket;
     private String username;
@@ -41,6 +48,18 @@ public class Controller implements Initializable {
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         clientsListView.setCellFactory(stringListView -> new Main.CellFactory());
+        passwordField.setTextFormatter(new TextFormatter<Object>(change -> {
+            if (change.getText().equals(" ")) {
+                change.setText("");
+            }
+            return change;
+        }));
+        disconnectMenuItem.setOnAction(event -> {
+            sendCloseRequest();
+        });
+        changeNicknameItem.setOnAction(event -> {
+            changeNicknameUiUpdate();
+        });
     }
 
     /**
@@ -57,6 +76,14 @@ public class Controller implements Initializable {
         authPanel.setManaged(!authorized);
         clientsListView.setVisible(authorized);
         clientsListView.setManaged(authorized);
+        changeNicknameItem.setDisable(!changeNicknameItem.isDisable());
+    }
+
+    private void changeNicknameUiUpdate(){
+        changeNicknamePanel.setVisible(!changeNicknamePanel.isVisible());
+        changeNicknamePanel.setManaged(!changeNicknamePanel.isManaged());
+        newNicknameField.clear();
+        newNicknameField.requestFocus();
     }
 
     /**
@@ -110,8 +137,7 @@ public class Controller implements Initializable {
     public void tryAuth() {
         connect();
         try {
-            out.writeUTF("/auth " + usernameField.getText());
-            usernameField.clear();
+            out.writeUTF("/auth " + usernameField.getText() + " " + passwordField.getText());
             textMessageArea.requestFocus();
         } catch (IOException e) {
             showErrorStringMessage("Unable to send authorization request");
@@ -144,10 +170,12 @@ public class Controller implements Initializable {
             while (true) {
                 String message = in.readUTF();
                 if (message.equals("/exit")) {
-                    closeConnection();
+                    return;
                 }
                 if (message.startsWith("/authok ")) {
                     username = message.split("\\s+")[1];
+                    usernameField.clear();
+                    passwordField.clear();
                     setAuthorized(true);
                     break;
                 }
@@ -159,6 +187,14 @@ public class Controller implements Initializable {
                 if (message.startsWith("/")) {
                     if (message.equals("/exit")) {
                         break;
+                    }
+                    if (message.startsWith("/changeok ")) {
+                        String[] tokens = message.split("\\s+", 2);
+                        username = tokens[1];
+                        Platform.runLater(() -> {
+                            changeNicknameItem.setSelected(false);
+                            changeNicknameUiUpdate();
+                        });
                     }
                     if (message.startsWith("/clients_list ")) {
                         Platform.runLater(() -> {
@@ -230,9 +266,24 @@ public class Controller implements Initializable {
             if (selectedUser.contains(" (You)")) {
                 return;
             }
+            textMessageArea.clear();
             textMessageArea.appendText("/w " + selectedUser + " ");
             textMessageArea.requestFocus();
             textMessageArea.selectEnd();
+        }
+    }
+
+    /**
+     * метод для отправки запроса смены ника на сервер
+     */
+    public void changeNickname() {
+        try {
+            if (out != null && !socket.isClosed() && socket != null) {
+                out.writeUTF("/changenickname " + username + " " + newNicknameField.getText());
+            }
+        } catch (IOException e) {
+            showErrorStringMessage("Server has been down...");
+            e.printStackTrace();
         }
     }
 }
