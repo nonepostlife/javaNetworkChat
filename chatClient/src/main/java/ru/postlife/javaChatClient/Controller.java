@@ -1,7 +1,6 @@
 package ru.postlife.javaChatClient;
 
 import javafx.application.Platform;
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
@@ -9,11 +8,15 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+
+import java.io.*;
 import java.net.Socket;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.ResourceBundle;
 
 /**
@@ -41,6 +44,8 @@ public class Controller implements Initializable {
     private String username;
     private DataInputStream in;
     private DataOutputStream out;
+    private BufferedWriter bufferedWriter;
+    private File historyFile;
 
     /**
      * метод инициализации окна приложения
@@ -54,6 +59,7 @@ public class Controller implements Initializable {
             }
             return change;
         }));
+        chatArea.textProperty().addListener((observableValue, s, t1) -> chatArea.setScrollTop(Double.MAX_VALUE));
         disconnectMenuItem.setOnAction(event -> {
             sendCloseRequest();
         });
@@ -79,7 +85,10 @@ public class Controller implements Initializable {
         changeNicknameItem.setDisable(!changeNicknameItem.isDisable());
     }
 
-    private void changeNicknameUiUpdate(){
+    /**
+     * метод обновления окна приложения при вкл/выкл функции смени никнейма
+     */
+    private void changeNicknameUiUpdate() {
         changeNicknamePanel.setVisible(!changeNicknamePanel.isVisible());
         changeNicknamePanel.setManaged(!changeNicknamePanel.isManaged());
         newNicknameField.clear();
@@ -177,6 +186,9 @@ public class Controller implements Initializable {
                     usernameField.clear();
                     passwordField.clear();
                     setAuthorized(true);
+                    historyFile = new File("history_" + username + ".txt");
+                    readUserChatHistory();
+                    bufferedWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(historyFile, true)));
                     break;
                 }
                 chatArea.appendText(message + "\n");
@@ -191,9 +203,18 @@ public class Controller implements Initializable {
                     if (message.startsWith("/changeok ")) {
                         String[] tokens = message.split("\\s+", 2);
                         username = tokens[1];
+
+                        Path source = Paths.get(historyFile.getName());
+                        Path dest = Paths.get("history_" + username + ".txt");
+                        bufferedWriter.close();
+                        Files.move(source, dest);
+                        historyFile = new File("history_" + username + ".txt");
+                        bufferedWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(historyFile, true)));
+
                         Platform.runLater(() -> {
                             changeNicknameItem.setSelected(false);
                             changeNicknameUiUpdate();
+                            textMessageArea.requestFocus();
                         });
                     }
                     if (message.startsWith("/clients_list ")) {
@@ -212,18 +233,76 @@ public class Controller implements Initializable {
                     continue;
                 }
                 chatArea.appendText(message + "\n");
+                if (!message.contains("SERVER")) {
+                    bufferedWriter.write(message + "\n");
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
-            closeConnection();
+            closeConnectionAndResources();
         }
+    }
+
+    /**
+     * метод для чтения истории чата пользователя из файла и добавления последних 100 в зону чата
+     */
+    private void readUserChatHistory() {
+        List<String> chatHistory;
+        if (!historyFile.exists()) {
+            try {
+                historyFile.createNewFile();
+                return;
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        chatHistory = getHistoryFromFile(historyFile);
+        if (chatHistory != null) {
+            if (chatHistory.size() > 100) {
+                chatHistory = chatHistory.subList(chatHistory.size() - 100, chatHistory.size());
+            }
+            StringBuilder builder = new StringBuilder();
+            chatHistory.forEach(s -> builder.append(s).append("\n"));
+            String text = builder.toString();
+            chatArea.appendText(text);
+            chatArea.setScrollTop(Double.MAX_VALUE);
+        }
+    }
+
+    /**
+     * метод для построчного считывания из файла
+     *
+     * @param file ссылка на файл
+     * @return List<String> - коллекцию строк если файл не пустой, null - если файл пустой
+     */
+    private List<String> getHistoryFromFile(File file) {
+        if (!file.exists()) {
+            try {
+                historyFile.createNewFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        List<String> history = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file)))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                history.add(line);
+            }
+            if (history.size() != 0) {
+                return history;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     /**
      * метод закрытия соединения с сервером (сокет, вход. выход. потоков)
      */
-    private void closeConnection() {
+    private void closeConnectionAndResources() {
         setAuthorized(false);
         try {
             if (in != null) {
@@ -245,6 +324,14 @@ public class Controller implements Initializable {
             }
         } catch (IOException e) {
             e.printStackTrace();
+        }
+        try {
+            if (bufferedWriter != null) {
+                bufferedWriter.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+
         }
     }
 
