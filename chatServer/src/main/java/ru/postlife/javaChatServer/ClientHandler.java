@@ -62,6 +62,9 @@ public class ClientHandler {
     private void logic() {
         try {
             while (!consumeAuthorizeMessage(in.readUTF())) ;
+            if (socket.isClosed()) {
+                return;
+            }
             while (consumeRegularMessage(in.readUTF())) ;
         } catch (IOException e) {
             e.printStackTrace();
@@ -86,6 +89,19 @@ public class ClientHandler {
                 sendMessage("/exit");
                 return false;
             }
+            if (message.startsWith("/changenickname ")) {
+                String[] tokens = message.split("\\s+", 3);
+                String result = server.getAuthService().changeNickname(tokens[1], tokens[2]);
+                if (result.equals("/changeok")) {
+                    username = tokens[2];
+                    sendMessage(result + " " + username);
+                    server.broadcastMessage("SERVER: " + tokens[1] + " changed his nickname to " + tokens[2]);
+                    server.broadcastClientList();
+                } else {
+                    sendMessage("SERVER: fail change nickname - " + result);
+                }
+                return true;
+            }
             if (message.startsWith("/w ")) {
                 String[] tokens = message.split("\\s+", 3);
                 server.sendPersonalMessage(this, tokens[1], tokens[2]);
@@ -106,26 +122,36 @@ public class ClientHandler {
     private boolean consumeAuthorizeMessage(String message) {
         if (message.startsWith("/auth ")) {
             String[] tokens = message.split("\\s+");
-            if (tokens.length == 1) {
-                sendMessage("SERVER: You didn't provide nickname");
+            if (tokens.length < 3) {
+                sendMessage("SERVER: You didn't provide login or password");
                 return false;
             }
-            if (tokens.length > 2) {
-                sendMessage("SERVER: Nickname must contain ONE word");
+            if (tokens.length > 3) {
+                sendMessage("SERVER: login must contain ONE word");
                 return false;
             }
-            String selectedUsername = tokens[1];
-            if (!this.server.checkNicknameAvailability(selectedUsername)) {
-                sendMessage("SERVER: nickname '" + selectedUsername + "' isn't available!");
+
+            String selectedUsername = server.getAuthService().getNickByLoginPass(tokens[1], tokens[2]);
+            if (selectedUsername != null) {
+                if (!this.server.checkNicknameAvailability(selectedUsername)) {
+                    sendMessage("SERVER: account is already in use!");
+                    return false;
+                }
+                username = selectedUsername;
+                sendMessage("/authok " + username);
+                sendMessage("SERVER: welcome to chat");
+                server.subscribe(this);
+                return true;
+            } else {
+                sendMessage("SERVER: wrong login or password");
                 return false;
             }
-            username = selectedUsername;
-            sendMessage("/authok " + username);
-            sendMessage("SERVER: Welcome to chat");
-            server.subscribe(this);
+        } else if (message.equals("/exit")) {
+            sendMessage("/exit");
+            closeConnection();
             return true;
         } else {
-            sendMessage("SERVER: Authorization is required");
+            sendMessage("SERVER: authentication required");
             return false;
         }
     }

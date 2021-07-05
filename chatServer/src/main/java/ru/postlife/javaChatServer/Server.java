@@ -11,7 +11,9 @@ import java.util.List;
  * Класс поведения сервера
  */
 public class Server {
+    private final int PORT = 8189;
     private List<ClientHandler> clientsList;
+    private AuthService authService;
 
     /**
      * конструктор класса Server
@@ -20,8 +22,10 @@ public class Server {
         try {
             this.clientsList = new ArrayList<>();
             // открытие сокета
-            ServerSocket serverSocket = new ServerSocket(8189);
+            ServerSocket serverSocket = new ServerSocket(PORT);
             System.out.println("Server has been started. Wait connect..");
+            authService = new DatabaseAuthService();
+            authService.start();
             // жизненный цикл сервера, подключение новых клиентов
             while (true) {
                 Socket socket = serverSocket.accept();
@@ -30,12 +34,17 @@ public class Server {
             }
         } catch (IOException e) {
             e.printStackTrace();
+        } finally {
+            if (authService != null) {
+                authService.stop();
+            }
         }
     }
 
     /**
      * метод добавления нового пользователя в список пользователей
      * и оповещения остальных пользователей о подключении нового пользователя
+     *
      * @param c добавляемый пользователь
      */
     public synchronized void subscribe(ClientHandler c) {
@@ -47,6 +56,7 @@ public class Server {
     /**
      * метод удаления пользователя из список пользователей
      * и оповещения остальных пользователей об отключении пользователя
+     *
      * @param c удаляемый пользователь
      */
     public synchronized void unsubscribe(ClientHandler c) {
@@ -57,6 +67,7 @@ public class Server {
 
     /**
      * широковещательная отправка сообщения
+     *
      * @param message отправляемое сообщение
      */
     public synchronized void broadcastMessage(String message) {
@@ -68,7 +79,7 @@ public class Server {
     /**
      * формирование списка клиентов
      */
-    private synchronized void broadcastClientList() {
+    public synchronized void broadcastClientList() {
         ArrayList<String> list = new ArrayList<>();
         for (ClientHandler client : clientsList) {
             list.add(client.getUsername());
@@ -81,11 +92,12 @@ public class Server {
 
     /**
      * метод проверки доступности никнейма среди других клиентов
-     * @param username  проверяемое имя пользователя
-     * @return          возвращает true если проверяеоме имя пользователя не используется
-     *                  возвращает false в противном случае
+     *
+     * @param username проверяемое имя пользователя
+     * @return возвращает true если проверяеоме имя пользователя не используется
+     * возвращает false в противном случае
      */
-    public boolean checkNicknameAvailability(String username) {
+    public synchronized boolean checkNicknameAvailability(String username) {
         for (ClientHandler client : clientsList) {
             if (username.equalsIgnoreCase(client.getUsername())) {
                 return false;
@@ -96,11 +108,12 @@ public class Server {
 
     /**
      * метод отправки личного сообщения пользователю
-     * @param sender отправитель
+     *
+     * @param sender           отправитель
      * @param receiverUsername имя получателя сообщения
-     * @param message отправляемое сообщение
+     * @param message          отправляемое сообщение
      */
-    public void sendPersonalMessage(ClientHandler sender, String receiverUsername, String message) {
+    public synchronized void sendPersonalMessage(ClientHandler sender, String receiverUsername, String message) {
         if (sender.getUsername().equalsIgnoreCase(receiverUsername)) {
             sender.sendMessage("You cannot send private message to yourself");
             return;
@@ -113,5 +126,9 @@ public class Server {
             }
         }
         sender.sendMessage("User " + receiverUsername + " is offline");
+    }
+
+    public AuthService getAuthService() {
+        return authService;
     }
 }
