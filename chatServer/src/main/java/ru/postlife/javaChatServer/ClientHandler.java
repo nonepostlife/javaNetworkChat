@@ -124,6 +124,16 @@ public class ClientHandler {
      * возвращает false если пользователь не был авторизован
      */
     private boolean consumeAuthorizeMessage(String message) {
+        if (message.startsWith("/register ")) {
+            String[] tokens = message.split("\\s+");
+            if (tokens.length != 4) {
+                sendMessage("SERVER: spaces can't be used in fields");
+                return false;
+            }
+            String result = server.getAuthService().registerNewUser(tokens[1], tokens[2], tokens[3]);
+            sendMessage(result);
+            return false;
+        }
         if (message.startsWith("/auth ")) {
             String[] tokens = message.split("\\s+");
             if (tokens.length < 3) {
@@ -134,7 +144,6 @@ public class ClientHandler {
                 sendMessage("SERVER: login must contain ONE word");
                 return false;
             }
-
             String selectedUsername = server.getAuthService().getNickByLoginPass(tokens[1], tokens[2]);
             if (selectedUsername != null) {
                 if (!this.server.checkNicknameAvailability(selectedUsername)) {
@@ -150,7 +159,8 @@ public class ClientHandler {
                 sendMessage("SERVER: wrong login or password");
                 return false;
             }
-        } else if (message.equals("/exit")) {
+        }
+        if (message.equals("/exit")) {
             sendMessage("/exit");
             closeConnection();
             return true;

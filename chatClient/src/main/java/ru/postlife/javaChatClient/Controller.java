@@ -1,6 +1,7 @@
 package ru.postlife.javaChatClient;
 
 import javafx.application.Platform;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
@@ -8,6 +9,9 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
 
 import java.io.*;
 import java.net.Socket;
@@ -24,21 +28,27 @@ import java.util.ResourceBundle;
  */
 public class Controller implements Initializable {
     @FXML
+    HBox msgPanel, authPanel, changeNicknamePanel, chatPanel;
+    @FXML
+    VBox registerPanel, mainPanel;
+    @FXML
+    MenuItem disconnectMenuItem, registerMenuItem;
+    @FXML
+    CheckMenuItem changeNicknameMenuItem;
+    // рабочая область чата
+    @FXML
     TextArea chatArea;
     @FXML
     TextField textMessageArea;
     @FXML
-    HBox msgPanel, authPanel, changeNicknamePanel;
-    @FXML
-    TextField usernameField, newNicknameField;
-    @FXML
-    PasswordField passwordField;
-    @FXML
     ListView<String> clientsListView;
+    // поля ввода, вывода
     @FXML
-    MenuItem disconnectMenuItem;
+    TextField usernameField, newNicknameField, loginRegField, nicknameRegField;
     @FXML
-    CheckMenuItem changeNicknameItem;
+    PasswordField passwordField, passwordRegField;
+    @FXML
+    Label infoLabel;
 
     private Socket socket;
     private String username;
@@ -46,6 +56,7 @@ public class Controller implements Initializable {
     private DataOutputStream out;
     private BufferedWriter bufferedWriter;
     private File historyFile;
+    private boolean isAuthorized;
 
     /**
      * метод инициализации окна приложения
@@ -63,36 +74,9 @@ public class Controller implements Initializable {
         disconnectMenuItem.setOnAction(event -> {
             sendCloseRequest();
         });
-        changeNicknameItem.setOnAction(event -> {
+        changeNicknameMenuItem.setOnAction(event -> {
             changeNicknameUiUpdate();
         });
-    }
-
-    /**
-     * метод для изменения видимости элементов управления
-     * в зависомсти от наличия авторизации пользователя
-     *
-     * @param authorized true - пользователь авторизован
-     *                   false - пользователь не авторизован
-     */
-    private void setAuthorized(boolean authorized) {
-        msgPanel.setVisible(authorized);
-        msgPanel.setManaged(authorized);
-        authPanel.setVisible(!authorized);
-        authPanel.setManaged(!authorized);
-        clientsListView.setVisible(authorized);
-        clientsListView.setManaged(authorized);
-        changeNicknameItem.setDisable(!changeNicknameItem.isDisable());
-    }
-
-    /**
-     * метод обновления окна приложения при вкл/выкл функции смени никнейма
-     */
-    private void changeNicknameUiUpdate() {
-        changeNicknamePanel.setVisible(!changeNicknamePanel.isVisible());
-        changeNicknamePanel.setManaged(!changeNicknamePanel.isManaged());
-        newNicknameField.clear();
-        newNicknameField.requestFocus();
     }
 
     /**
@@ -154,6 +138,24 @@ public class Controller implements Initializable {
     }
 
     /**
+     * метод для изменения видимости элементов управления
+     * в зависомсти от наличия авторизации пользователя
+     *
+     * @param authorized true - пользователь авторизован
+     *                   false - пользователь не авторизован
+     */
+    private void setAuthorized(boolean authorized) {
+        msgPanel.setVisible(authorized);
+        msgPanel.setManaged(authorized);
+        authPanel.setVisible(!authorized);
+        authPanel.setManaged(!authorized);
+        clientsListView.setVisible(authorized);
+        clientsListView.setManaged(authorized);
+        changeNicknameMenuItem.setDisable(!changeNicknameMenuItem.isDisable());
+        registerMenuItem.setDisable(!registerMenuItem.isDisable());
+    }
+
+    /**
      * метод для подключения к серверу
      */
     private void connect() {
@@ -181,15 +183,28 @@ public class Controller implements Initializable {
                 if (message.equals("/exit")) {
                     return;
                 }
-                if (message.startsWith("/authok ")) {
-                    username = message.split("\\s+")[1];
-                    usernameField.clear();
-                    passwordField.clear();
-                    setAuthorized(true);
-                    historyFile = new File("history_" + username + ".txt");
-                    readUserChatHistory();
-                    bufferedWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(historyFile, true)));
-                    break;
+                if (message.startsWith("/")) {
+                    if (message.startsWith("/register")) {
+                        Paint color = message.startsWith("/registerok") ? Color.GREEN : Color.RED;
+                        Platform.runLater(() -> {
+                            infoLabel.setTextFill(color);
+                            infoLabel.setText(message.split("\\s+", 2)[1]);
+                        });
+                        //sendCloseRequest();
+                        continue;
+                    }
+                    if (message.startsWith("/authok ")) {
+                        username = message.split("\\s+")[1];
+                        usernameField.clear();
+                        passwordField.clear();
+                        isAuthorized = true;
+                        setAuthorized(isAuthorized);
+                        disconnectMenuItem.setDisable(false);
+                        historyFile = new File("history_" + username + ".txt");
+                        readUserChatHistory();
+                        bufferedWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(historyFile, true)));
+                        break;
+                    }
                 }
                 chatArea.appendText(message + "\n");
             }
@@ -212,7 +227,7 @@ public class Controller implements Initializable {
                         bufferedWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(historyFile, true)));
 
                         Platform.runLater(() -> {
-                            changeNicknameItem.setSelected(false);
+                            changeNicknameMenuItem.setSelected(false);
                             changeNicknameUiUpdate();
                             textMessageArea.requestFocus();
                         });
@@ -241,6 +256,7 @@ public class Controller implements Initializable {
             e.printStackTrace();
         } finally {
             closeConnectionAndResources();
+            disconnectMenuItem.setDisable(true);
         }
     }
 
@@ -303,7 +319,8 @@ public class Controller implements Initializable {
      * метод закрытия соединения с сервером (сокет, вход. выход. потоков)
      */
     private void closeConnectionAndResources() {
-        setAuthorized(false);
+        isAuthorized = false;
+        setAuthorized(isAuthorized);
         try {
             if (in != null) {
                 in.close();
@@ -372,5 +389,36 @@ public class Controller implements Initializable {
             showErrorStringMessage("Server has been down...");
             e.printStackTrace();
         }
+    }
+
+    /**
+     * метод обновления окна приложения при вкл/выкл функции смени никнейма
+     */
+    private void changeNicknameUiUpdate() {
+        changeNicknamePanel.setVisible(!changeNicknamePanel.isVisible());
+        changeNicknamePanel.setManaged(!changeNicknamePanel.isManaged());
+        newNicknameField.clear();
+        newNicknameField.requestFocus();
+    }
+
+    public void tryRegister(ActionEvent event) {
+        connect();
+        try {
+            out.writeUTF("/register " + loginRegField.getText() + " " + passwordRegField.getText() + " " + nicknameRegField.getText());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void registrationUiUpdate() {
+        registerPanel.setVisible(!registerPanel.isVisible());
+        registerPanel.setManaged(!registerPanel.isManaged());
+        mainPanel.setVisible(!mainPanel.isVisible());
+        mainPanel.setManaged(!mainPanel.isManaged());
+
+        loginRegField.clear();
+        passwordRegField.clear();
+        nicknameRegField.clear();
+        infoLabel.setText("");
     }
 }
