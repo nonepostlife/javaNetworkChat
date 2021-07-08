@@ -385,7 +385,7 @@ public class Controller implements Initializable {
      */
     public void changeNickname() {
         try {
-            if (out != null && !socket.isClosed() && socket != null) {
+            if (out != null && socket != null && !socket.isClosed()) {
                 out.writeUTF("/changenickname " + username + " " + newNicknameField.getText());
             }
         } catch (IOException e) {

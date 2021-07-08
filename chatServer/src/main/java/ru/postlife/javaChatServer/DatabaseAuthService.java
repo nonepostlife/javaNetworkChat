@@ -41,8 +41,10 @@ public class DatabaseAuthService implements AuthService {
 
     @Override
     public String getNickByLoginPass(String login, String password) {
-        try (ResultSet rs = statement.executeQuery("Select user_nickname, user_password from user " +
+        try (PreparedStatement ps = connection.prepareStatement("Select user_nickname, user_password from user " +
                 "where user_login = '" + login + "'")) {
+            ps.execute();
+            ResultSet rs = ps.getResultSet();
             String nickname = "";
             String stored_hash = "";
 
@@ -62,8 +64,10 @@ public class DatabaseAuthService implements AuthService {
 
     @Override
     public String changeNickname(String oldNickname, String newNickname) {
-        try {
-            statement.executeUpdate("update user set user_nickname = '" + newNickname + "' where user_nickname = '" + oldNickname + "'");
+        try (PreparedStatement ps = connection.prepareStatement("update user set user_nickname = ? where user_nickname = ?")) {
+            ps.setString(1, newNickname);
+            ps.setString(2, oldNickname);
+            ps.execute();
             return "/changeok";
         } catch (SQLException throwables) {
             return throwables.getMessage();
@@ -72,9 +76,8 @@ public class DatabaseAuthService implements AuthService {
 
     @Override
     public String registerNewUser(String login, String password, String nickname) {
-        try {
-            PreparedStatement ps = connection.prepareStatement("insert into user (user_login, user_password, user_nickname) " +
-                    "values (?,?,?)");
+        try(PreparedStatement ps = connection.prepareStatement("insert into user (user_login, user_password, user_nickname) " +
+                "values (?,?,?)")) {
             ps.setString(1, login);
             ps.setString(2, hashPassword(password));
             ps.setString(3, nickname);
