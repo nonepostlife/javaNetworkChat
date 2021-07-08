@@ -6,12 +6,12 @@ import java.util.List;
 public class BaseAuthService implements AuthService {
     private class Entry {
         private String login;
-        private String pass;
+        private String password;
         private String nick;
 
         public Entry(String login, String pass, String nick) {
             this.login = login;
-            this.pass = pass;
+            this.password = pass;
             this.nick = nick;
         }
     }
@@ -38,7 +38,7 @@ public class BaseAuthService implements AuthService {
     @Override
     public String getNickByLoginPass(String login, String pass) {
         for (Entry o : entries) {
-            if (o.login.equals(login) && o.pass.equals(pass)) return o.nick;
+            if (o.login.equals(login) && o.password.equals(pass)) return o.nick;
         }
         return null;
     }
@@ -52,5 +52,19 @@ public class BaseAuthService implements AuthService {
             }
         }
         return "/changefail";
+    }
+
+    @Override
+    public String registerNewUser(String login, String password, String nickname) {
+        for (Entry entry : entries) {
+            if (entry.login.equals(login)) {
+                return "/registerfail login is already in use!";
+            }
+            if (entry.nick.equals(nickname)) {
+                return "/registerfail nickname is already in use!";
+            }
+        }
+        entries.add(new Entry(login, password, nickname));
+        return "/registerok Registration successful";
     }
 }

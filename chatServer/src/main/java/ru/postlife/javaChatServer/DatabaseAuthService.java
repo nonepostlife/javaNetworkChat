@@ -70,6 +70,21 @@ public class DatabaseAuthService implements AuthService {
         }
     }
 
+    @Override
+    public String registerNewUser(String login, String password, String nickname) {
+        try {
+            PreparedStatement ps = connection.prepareStatement("insert into user (user_login, user_password, user_nickname) " +
+                    "values (?,?,?)");
+            ps.setString(1, login);
+            ps.setString(2, hashPassword(password));
+            ps.setString(3, nickname);
+            ps.execute();
+            return "/registerok Registration successful";
+        } catch (SQLException throwables) {
+            return "/registerfail " + throwables.getMessage();
+        }
+    }
+
     // Define the BCrypt workload to use when generating password hashes. 10-31 is a valid value.
     private static int workload = 12;
 
