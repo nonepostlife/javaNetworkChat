@@ -19,7 +19,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.ResourceBundle;
 
@@ -199,10 +199,13 @@ public class Controller implements Initializable {
                         passwordField.clear();
                         isAuthorized = true;
                         setAuthorized(isAuthorized);
-                        disconnectMenuItem.setDisable(false);
                         historyFile = new File("history_" + username + ".txt");
                         readUserChatHistory();
                         bufferedWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(historyFile, true)));
+                        Platform.runLater(() -> {
+                            disconnectMenuItem.setDisable(false);
+                            textMessageArea.requestFocus();
+                        });
                         break;
                     }
                 }
@@ -273,11 +276,8 @@ public class Controller implements Initializable {
                 e.printStackTrace();
             }
         }
-        chatHistory = getHistoryFromFile(historyFile);
+        chatHistory = getHistoryFromFile(historyFile, 100);
         if (chatHistory != null) {
-            if (chatHistory.size() > 100) {
-                chatHistory = chatHistory.subList(chatHistory.size() - 100, chatHistory.size());
-            }
             StringBuilder builder = new StringBuilder();
             chatHistory.forEach(s -> builder.append(s).append("\n"));
             String text = builder.toString();
@@ -292,7 +292,7 @@ public class Controller implements Initializable {
      * @param file ссылка на файл
      * @return List<String> - коллекцию строк если файл не пустой, null - если файл пустой
      */
-    private List<String> getHistoryFromFile(File file) {
+    private List<String> getHistoryFromFile(File file, int linesCount) {
         if (!file.exists()) {
             try {
                 historyFile.createNewFile();
@@ -300,11 +300,14 @@ public class Controller implements Initializable {
                 e.printStackTrace();
             }
         }
-        List<String> history = new ArrayList<>();
+        List<String> history = new LinkedList<>();
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file)))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 history.add(line);
+                if (history.size() > linesCount) {
+                    history.remove(0);
+                }
             }
             if (history.size() != 0) {
                 return history;
