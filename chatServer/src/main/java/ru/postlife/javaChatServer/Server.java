@@ -48,7 +48,7 @@ public class Server {
      * @param c добавляемый пользователь
      */
     public synchronized void subscribe(ClientHandler c) {
-        broadcastMessage(c.getUsername() + " присоединился к чату!");
+        broadcastMessage("SERVER: " + c.getUsername() + " joined to chat!");
         clientsList.add(c);
         broadcastClientList();
     }
@@ -61,7 +61,7 @@ public class Server {
      */
     public synchronized void unsubscribe(ClientHandler c) {
         clientsList.remove(c);
-        broadcastMessage(c.getUsername() + " покинул чат!");
+        broadcastMessage("SERVER: " + c.getUsername() + " left from chat!");
         broadcastClientList();
     }
 
@@ -115,7 +115,7 @@ public class Server {
      */
     public synchronized void sendPersonalMessage(ClientHandler sender, String receiverUsername, String message) {
         if (sender.getUsername().equalsIgnoreCase(receiverUsername)) {
-            sender.sendMessage("You cannot send private message to yourself");
+            sender.sendMessage("SERVER: you cannot send private message to yourself");
             return;
         }
         for (ClientHandler client : clientsList) {
@@ -125,7 +125,7 @@ public class Server {
                 return;
             }
         }
-        sender.sendMessage("User " + receiverUsername + " is offline");
+        sender.sendMessage("SERVER: user " + receiverUsername + " is offline");
     }
 
     public AuthService getAuthService() {

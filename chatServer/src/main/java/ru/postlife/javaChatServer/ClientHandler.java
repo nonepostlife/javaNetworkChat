@@ -91,6 +91,10 @@ public class ClientHandler {
             }
             if (message.startsWith("/changenickname ")) {
                 String[] tokens = message.split("\\s+", 3);
+                if (tokens[1].equals(tokens[2])) {
+                    sendMessage("SERVER: old nickname is the same as new nickname");
+                    return true;
+                }
                 String result = server.getAuthService().changeNickname(tokens[1], tokens[2]);
                 if (result.equals("/changeok")) {
                     username = tokens[2];
