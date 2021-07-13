@@ -2,21 +2,29 @@ package ru.postlife.javaChatServer;
 
 import java.sql.*;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.mindrot.jbcrypt.*;
 
 public class DatabaseAuthService implements AuthService {
-    private String jdbcURL = "jdbc:mysql://localhost:3306/netchat";
+    private String jdbcURL = "jdbc:mysql://localhost:3306/netchat?serverTimezone=UTC";
     private String username = "root";
     private String password = "root";
     private Connection connection;
     private Statement statement;
+    private static final Logger logger;
+    static {
+        logger = LogManager.getLogger(BaseAuthService.class);
+    }
 
     @Override
     public void start() {
         try {
             connection = DriverManager.getConnection(jdbcURL, username, password);
             statement = connection.createStatement();
+            logger.info("Database auth service is start");
         } catch (SQLException throwables) {
+            logger.warn("Database auth service was not started - " + throwables.getMessage());
             throwables.printStackTrace();
         }
     }
@@ -28,13 +36,16 @@ public class DatabaseAuthService implements AuthService {
                 statement.close();
             }
         } catch (SQLException e) {
+            logger.warn("Database auth service has not been stopped (statement) - " + e.getMessage());
             e.printStackTrace();
         }
         try {
             if (connection != null) {
                 connection.close();
+                logger.info("Database auth service is stop");
             }
         } catch (SQLException e) {
+            logger.warn("Database auth service has not been stopped (connection) - " + e.getMessage());
             e.printStackTrace();
         }
     }
