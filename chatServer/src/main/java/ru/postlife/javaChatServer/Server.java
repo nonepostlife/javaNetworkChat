@@ -6,6 +6,8 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Класс поведения сервера
@@ -14,6 +16,7 @@ public class Server {
     private final int PORT = 8189;
     private List<ClientHandler> clientsList;
     private AuthService authService;
+    private ExecutorService executorService;
 
     /**
      * конструктор класса Server
@@ -26,10 +29,13 @@ public class Server {
             System.out.println("Server has been started. Wait connect..");
             authService = new DatabaseAuthService();
             authService.start();
+            executorService = Executors.newCachedThreadPool();
             // жизненный цикл сервера, подключение новых клиентов
             while (true) {
                 Socket socket = serverSocket.accept();
-                ClientHandler c = new ClientHandler(this, socket);
+                Server server = this;
+                ClientHandler clientHandler = new ClientHandler(server, socket);
+                executorService.execute(clientHandler::logic);
                 System.out.println("New client connected");
             }
         } catch (IOException e) {
@@ -38,6 +44,7 @@ public class Server {
             if (authService != null) {
                 authService.stop();
             }
+            executorService.shutdown();
         }
     }
 
