@@ -54,8 +54,8 @@ public class Server {
             if (authService != null) {
                 authService.stop();
             }
-            executorService.shutdown();
             logger.info("Server has been stopped.");
+            executorService.shutdown();
         }
     }
 
