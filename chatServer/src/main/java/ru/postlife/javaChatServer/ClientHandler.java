@@ -36,7 +36,6 @@ public class ClientHandler {
             this.server = server;
             this.in = new DataInputStream(socket.getInputStream());
             this.out = new DataOutputStream(socket.getOutputStream());
-            new Thread(() -> logic()).start();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -59,7 +58,7 @@ public class ClientHandler {
      * логика поведения обработчика
      * принимет сообщения от клиентского приложения
      */
-    private void logic() {
+    public void logic() {
         try {
             while (!consumeAuthorizeMessage(in.readUTF())) ;
             if (socket.isClosed()) {

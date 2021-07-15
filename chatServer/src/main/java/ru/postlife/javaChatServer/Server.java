@@ -34,7 +34,8 @@ public class Server {
             while (true) {
                 Socket socket = serverSocket.accept();
                 Server server = this;
-                executorService.execute(() -> new ClientHandler(server, socket));
+                ClientHandler clientHandler = new ClientHandler(server, socket);
+                executorService.execute(clientHandler::logic);
                 System.out.println("New client connected");
             }
         } catch (IOException e) {

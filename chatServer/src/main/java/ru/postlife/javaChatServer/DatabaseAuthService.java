@@ -5,7 +5,7 @@ import java.sql.*;
 import org.mindrot.jbcrypt.*;
 
 public class DatabaseAuthService implements AuthService {
-    private String jdbcURL = "jdbc:mysql://localhost:3306/netchat";
+    private String jdbcURL = "jdbc:mysql://localhost:3306/netchat?serverTimezone=UTC";
     private String username = "root";
     private String password = "root";
     private Connection connection;
