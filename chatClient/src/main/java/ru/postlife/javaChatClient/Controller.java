@@ -19,6 +19,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ResourceBundle;
@@ -260,6 +261,7 @@ public class Controller implements Initializable {
         } finally {
             closeConnectionAndResources();
             disconnectMenuItem.setDisable(true);
+            chatArea.clear();
         }
     }
 
@@ -277,7 +279,7 @@ public class Controller implements Initializable {
             }
         }
         chatHistory = getHistoryFromFile(historyFile, 100);
-        if (chatHistory != null) {
+        if (!chatHistory.isEmpty()) {
             StringBuilder builder = new StringBuilder();
             chatHistory.forEach(s -> builder.append(s).append("\n"));
             String text = builder.toString();
@@ -315,7 +317,7 @@ public class Controller implements Initializable {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return null;
+        return Collections.emptyList();
     }
 
     /**
