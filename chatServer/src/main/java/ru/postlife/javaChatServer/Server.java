@@ -67,7 +67,7 @@ public class Server {
      */
     public synchronized void subscribe(ClientHandler c) {
         broadcastMessage("SERVER: " + c.getUsername() + " joined to chat!");
-        logger.info("SERVER: " + c.getUsername() + " joined to chat!");
+        logger.info("SERVER: {} joined to chat!", c.getUsername());
         clientsList.add(c);
         broadcastClientList();
     }
@@ -81,7 +81,7 @@ public class Server {
     public synchronized void unsubscribe(ClientHandler c) {
         clientsList.remove(c);
         broadcastMessage("SERVER: " + c.getUsername() + " left from chat!");
-        logger.info("SERVER: " + c.getUsername() + " left from chat!");
+        logger.info("SERVER: {} left from chat!", c.getUsername());
         broadcastClientList();
     }
 
@@ -136,7 +136,7 @@ public class Server {
     public synchronized void sendPersonalMessage(ClientHandler sender, String receiverUsername, String message) {
         if (sender.getUsername().equalsIgnoreCase(receiverUsername)) {
             sender.sendMessage("SERVER: you cannot send private message to yourself");
-            logger.info("to " + sender.getUsername() + ": SERVER: you cannot send private message to yourself");
+            logger.info("to {}: SERVER: you cannot send private message to yourself", sender.getUsername());
             return;
         }
         for (ClientHandler client : clientsList) {
@@ -147,7 +147,7 @@ public class Server {
             }
         }
         sender.sendMessage("SERVER: user " + receiverUsername + " is offline");
-        logger.info("to " + sender.getUsername() + "SERVER: user " + receiverUsername + " is offline");
+        logger.info("to {} SERVER: user {} is offline", sender.getUsername(), receiverUsername);
     }
 
     public AuthService getAuthService() {

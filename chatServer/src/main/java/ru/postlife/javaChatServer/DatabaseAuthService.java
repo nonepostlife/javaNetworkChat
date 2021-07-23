@@ -13,8 +13,9 @@ public class DatabaseAuthService implements AuthService {
     private Connection connection;
     private Statement statement;
     private static final Logger logger;
+
     static {
-        logger = LogManager.getLogger(BaseAuthService.class);
+        logger = LogManager.getLogger(DatabaseAuthService.class);
     }
 
     @Override
